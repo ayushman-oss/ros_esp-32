@@ -27,9 +27,7 @@ const int pwmMax = 255;
 const int pwmStep = 50; // Step size
 const int pwmHoldTime = 5000; // 5 seconds per level
 
-// PWM channels
-const int leftChannel = 0;
-const int rightChannel = 1;
+
 
 void IRAM_ATTR onEncoder1Tick() {
   encoder1Ticks++;
@@ -52,11 +50,9 @@ void setup() {
   digitalWrite(leftN, LOW);
   digitalWrite(rightN, LOW);
 
-  // PWM setup
-  ledcSetup(leftChannel, pwmFreq, pwmResolution);
-  ledcAttachPin(leftP, leftChannel);
-  ledcSetup(rightChannel, pwmFreq, pwmResolution);
-  ledcAttachPin(rightP, rightChannel);
+  ledcAttach(rightP,pwmfreq,pwmResolution);
+  ledcAttach(leftP,pwmfreq,pwmResolution);
+  
 
   Serial.println("Starting PWM-RPM test...");
 }
@@ -66,8 +62,8 @@ void loop() {
     Serial.println("===================================");
     Serial.printf("Testing PWM Duty: %d\n", duty);
 
-    ledcWrite(leftChannel, duty);
-    ledcWrite(rightChannel, duty);
+    ledcWrite(leftP, duty);
+    ledcWrite(rightP, duty);
 
     unsigned long startTime = millis();
     while (millis() - startTime < pwmHoldTime) {
