@@ -21,7 +21,7 @@ float rpmMotor2 = 0.0;
 const int ticksPerRevolution = 20;
 
 // PWM settings
-const int pwmFreq = 1000;
+const int pwmfreq = 1000;
 const int pwmResolution = 8; // 8-bit resolution: 0-255
 const int pwmMax = 255;
 const int pwmStep = 50; // Step size
@@ -63,7 +63,33 @@ void loop() {
     Serial.printf("Testing PWM Duty: %d\n", duty);
 
     ledcWrite(leftP, duty);
+    ledcWrite(leftN,0);
     ledcWrite(rightP, duty);
+    ledcWrite(rightN,0);
+    unsigned long startTime = millis();
+    while (millis() - startTime < pwmHoldTime) {
+      unsigned long currentTime = millis();
+      if (currentTime - lastRPMUpdate >= 1000) {
+        noInterrupts();
+        rpmMotor1 = (encoder1Ticks / (float)ticksPerRevolution) * 60.0;
+        rpmMotor2 = (encoder2Ticks / (float)ticksPerRevolution) * 60.0;
+        encoder1Ticks = 0;
+        encoder2Ticks = 0;
+        interrupts();
+
+        lastRPMUpdate = currentTime;
+        Serial.printf("PWM: %d => RPM1: %.2f, RPM2: %.2f\n", duty, rpmMotor1, rpmMotor2);
+      }
+    }
+  }
+    for (int duty = 50; duty <= pwmMax; duty += pwmStep) {
+    Serial.println("===================================");
+    Serial.printf("Testing reverse PWM Duty: %d\n", duty);
+
+    ledcWrite(leftN, duty);
+    ledcWrite(leftP, 0);
+    ledcWrite(rightP, 0);
+    ledcWrite(rightN, duty);
 
     unsigned long startTime = millis();
     while (millis() - startTime < pwmHoldTime) {
@@ -83,8 +109,8 @@ void loop() {
   }
 
   // Stop motors after test
-  ledcWrite(leftChannel, 0);
-  ledcWrite(rightChannel, 0);
+  ledcWrite(leftP, 0);
+  ledcWrite(rightP, 0);
   Serial.println("Test complete.");
   while (1); // Stop loop after one test round
 }
