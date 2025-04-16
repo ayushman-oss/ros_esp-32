@@ -10,6 +10,10 @@ const int leftN = 26;
 const int rightP = 27;
 const int rightN = 14;
 
+const int pwmfreq = 1000;
+const int pwmResolution = 8; // 8-bit resolution: 0-255
+const int pwmMax = 255;
+
 
 
 AsyncWebServer server(80);
@@ -37,6 +41,12 @@ void setup() {
   pinMode(leftN, OUTPUT);
   pinMode(rightP, OUTPUT);
   pinMode(rightN, OUTPUT);
+  ledcAttach(rightP,pwmfreq,pwmResolution);
+  ledcAttach(leftP,pwmfreq,pwmResolution);
+  ledcAttach(rightN,pwmfreq,pwmResolution);
+  ledcAttach(leftN,pwmfreq,pwmResolution);
+  
+  
   
   stopbot();
   
@@ -94,36 +104,37 @@ void movement(int cmdValue) {
 }
 
 void Forward() {
-  digitalWrite(leftP, HIGH);
-  digitalWrite(leftN, LOW);
-  digitalWrite(rightP, HIGH);
-  digitalWrite(rightN, LOW);
+  ledcWrite(leftP, 150);
+  ledcWrite(leftN, 0);
+  ledcWrite(rightP, 150);
+  ledcWrite(rightN, 0);
 }
 
 void Backward() {
-  digitalWrite(leftP, LOW);
-  digitalWrite(leftN, HIGH);
-  digitalWrite(rightP, LOW);
-  digitalWrite(rightN, HIGH);
+  ledcWrite(leftN, 150);
+  ledcWrite(leftP, 0);
+  ledcWrite(rightN, 150);
+  ledcWrite(rightP, 0);
 }
 
 void Left() {
-  digitalWrite(leftP, LOW);
-  digitalWrite(leftN, HIGH);
-  digitalWrite(rightP, HIGH);
-  digitalWrite(rightN, LOW);
+  ledcWrite(leftP, 0);
+  ledcWrite(leftN, 150);
+  ledcWrite(rightP, 150);
+  ledcWrite(rightN, 0);
 }
 
 void Right() {
-  digitalWrite(leftP, HIGH);
-  digitalWrite(leftN, LOW);
-  digitalWrite(rightP, LOW);
-  digitalWrite(rightN, HIGH);
+  ledcWrite(leftP, 0);
+  ledcWrite(leftN, 150);
+  ledcWrite(rightP, 0);
+  ledcWrite(rightN, 150);
 }
 
 void stopbot() {
-  digitalWrite(leftP, LOW);
-  digitalWrite(leftN, LOW);
-  digitalWrite(rightP, LOW);
-  digitalWrite(rightN, LOW);
+  ledcWrite(leftP, 0);
+  ledcWrite(leftN, 0);
+  ledcWrite(rightP, 0);
+  ledcWrite(rightN, 0);
+
 }
