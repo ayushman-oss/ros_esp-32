@@ -1,49 +1,49 @@
 #!/usr/bin/env python3
+
 import rospy
-import asyncio
-import websockets
 from std_msgs.msg import Int32
+import websocket  # Make sure `websocket-client` is installed
+import threading
+import time
 
 WS_SERVER = "ws://192.168.4.1/ws"
+ws = None  # Global WebSocket object
 
-# Queue to store commands coming from ROS
-command_queue = asyncio.Queue()
-
-async def websocket_client():
+def command_callback(msg):
+    global ws
     try:
-        async with websockets.connect(WS_SERVER) as websocket:
-            rospy.loginfo("Connected to ESP32 WebSocket server")
-
-            while not rospy.is_shutdown():
-                # Wait for a command from the queue
-                command = await command_queue.get()
-                await websocket.send(str(command))
-                rospy.loginfo(f"Sent: {command}")
-
-                response = await websocket.recv()
-                rospy.loginfo(f"Received: {response}")
+        if ws and ws.connected:
+            ws.send(str(msg.data))
+            rospy.loginfo(f"Sent: {msg.data}")
+        else:
+            rospy.logwarn("WebSocket not connected. Message not sent.")
     except Exception as e:
-        rospy.logerr(f"WebSocket error: {e}")
+        rospy.logerr(f"WebSocket send error: {e}")
 
-def ros_command_callback(msg):
-    # Put the received command into the queue
-    asyncio.run_coroutine_threadsafe(command_queue.put(msg.data), asyncio.get_event_loop())
+def websocket_thread():
+    global ws
+    while not rospy.is_shutdown():
+        try:
+            rospy.loginfo("Connecting to ESP32 WebSocket...")
+            ws = websocket.create_connection(WS_SERVER)
+            rospy.loginfo("Connected to ESP32 WebSocket")
 
-def ros_spin():
-    rospy.Subscriber('/key_cmd', Int32, ros_command_callback)
-    rospy.spin()
+            while ws.connected and not rospy.is_shutdown():
+                time.sleep(1)  # Keep connection alive
+        except Exception as e:
+            rospy.logerr(f"WebSocket connection error: {e}")
+            time.sleep(2)  # Retry after short delay
 
 def main():
-    rospy.init_node('websocket_client')
+    rospy.init_node('esp32_websocket_persistent_client')
 
-    loop = asyncio.get_event_loop()
-    try:
-        loop.run_until_complete(asyncio.gather(
-            websocket_client(),
-            loop.run_in_executor(None, ros_spin)
-        ))
-    except rospy.ROSInterruptException:
-        pass
+    # Start WebSocket connection thread
+    threading.Thread(target=websocket_thread, daemon=True).start()
+
+    # Subscribe to ROS topic
+    rospy.Subscriber('/key_cmd', Int32, command_callback)
+
+    rospy.spin()
 
 if __name__ == "__main__":
     main()
